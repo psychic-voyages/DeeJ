@@ -1,58 +1,87 @@
 const int NUM_SLIDERS = 4;
-const int analogInputs[NUM_SLIDERS] = {A0, A1, A2, A3};
-const int buttonInputs[NUM_SLIDERS] = {7,6,5,4};
-const int ledOutputs[NUM_SLIDERS] = {11,10,9,8};
-
+const unsigned int sliderBits = pow(2.0,NUM_SLIDERS)-1;
+const int analogInputs[NUM_SLIDERS] = {A0, A1, A2, A3, A4, A5};
+const int buttonIn = 7;
+const int srClock = 6;
+const int srLatch = 5;
+const int srData = 4;
 
 int analogSliderValues[NUM_SLIDERS];
 bool sliderMute[NUM_SLIDERS];
-bool currentRead[NUM_SLIDERS];
+unsigned int ledOut = 0;
+unsigned int ledOffset;
 bool buttonPressed = false;
 
 void setup() { 
   for (int i = 0; i < NUM_SLIDERS; i++) {
     pinMode(analogInputs[i], INPUT);
-    pinMode(buttonInputs[i], INPUT);
-    pinMode(ledOutputs[i], OUTPUT);
     sliderMute[i] = false;
   }
+  ledOffset = ledOut << NUM_SLIDERS;
+
+
+  pinMode(buttonIn, INPUT);
+  pinMode(srClock, OUTPUT);
+  pinMode(srLatch, OUTPUT);
+  pinMode(srData, OUTPUT);
+
+  digitalWrite(srLatch, LOW);
+  shiftOut(srData, srClock, LSBFIRST, 0x0F);
+  digitalWrite(srLatch, HIGH);
 
   Serial.begin(9600);
 }
 
 void loop() {
+  updateButtonValues();
   updateSliderValues();
-
-  // move to -> updateMuteValues()
-  bool buttonCheck = false;
-  for (int i = 0; i < NUM_SLIDERS; i++) {
-    currentRead[i] = digitalRead(buttonInputs[i]);
-    if (digitalRead(buttonInputs[i]) == true) {
-      buttonCheck = true;
-    }
-  }
-
-  if (buttonCheck && !buttonPressed) {
-    for (int i = 0; i < NUM_SLIDERS; i++) {
-      if (currentRead[i]) {
-        sliderMute[i] = !sliderMute[i];
-      }
-      digitalWrite(ledOutputs[i], sliderMute[i]);
-    }
-    buttonPressed = true;
-  } else if (!buttonCheck && buttonPressed) {
-    buttonPressed = false;
-  }
 
   sendSliderValues(); // Actually send data (all the time)
   // printSliderValues(); // For debug
-  myDebug();
+  // myDebug();
   delay(10);
+}
+
+void updateButtonValues() {
+  bool buttonCheck = false;
+
+  if (digitalRead(buttonIn) == HIGH && !buttonPressed) {
+    for (int i = 0; i < NUM_SLIDERS; i++) {
+      unsigned int buttonOffset = 1 << i;
+      digitalWrite(srLatch, LOW);
+      for (int j = 0; j < NUM_SLIDERS/4; j++) {
+        byte dataOut = ledOffset | buttonOffset >> (8 * j);
+        shiftOut(srData, srClock, LSBFIRST, dataOut);
+      }
+      digitalWrite(srLatch, HIGH);
+    
+      delay(5);
+
+      if (digitalRead(buttonIn) == HIGH) {
+        ledOut = ledOut ^ (1<<i);
+        sliderMute[i] = !sliderMute[i];
+        break;
+      }
+    }
+    ledOffset = ledOut << NUM_SLIDERS;
+    digitalWrite(srLatch, LOW);
+    shiftOut(srData, srClock, LSBFIRST, ledOffset | sliderBits);
+    digitalWrite(srLatch, HIGH);
+    buttonPressed = true;
+  } else if (digitalRead(buttonIn) == LOW && buttonPressed) {
+    digitalWrite(srLatch, LOW);
+    shiftOut(srData, srClock, LSBFIRST, ledOffset | sliderBits);
+    digitalWrite(srLatch, HIGH);
+    buttonPressed = false;
+  }
 }
 
 void updateSliderValues() {
   for (int i = 0; i < NUM_SLIDERS; i++) {
      analogSliderValues[i] = analogRead(analogInputs[i]);
+     if (sliderMute[(NUM_SLIDERS - 1) - i]) {
+      analogSliderValues[i] = 0;
+     }
   }
 }
 
@@ -60,7 +89,6 @@ void sendSliderValues() {
   String builtString = String("");
 
   for (int i = 0; i < NUM_SLIDERS; i++) {
-    analogSliderValues[i] = sliderMute[i] ? 0 : analogSliderValues[i];
     builtString += String((int)analogSliderValues[i]);
 
     if (i < NUM_SLIDERS - 1) {
@@ -72,7 +100,7 @@ void sendSliderValues() {
 }
 
 void myDebug () {
-
+  Serial.println(digitalRead(buttonIn));
 }
 
 void printSliderValues() {
