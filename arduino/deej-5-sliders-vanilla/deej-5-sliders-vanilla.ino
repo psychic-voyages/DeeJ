@@ -35,11 +35,21 @@ void setup() {
   pinMode(srLatch, OUTPUT);
   pinMode(srData, OUTPUT);
 
+  for (int i = 0; i < NUM_SLIDERS; i++) {
+    digitalWrite(srLatch, LOW);
+    for (int j = 0; j < shiftSegments; j++) {
+      byte data = ((1 << (i+NUM_SLIDERS)) | 0) >> 8 * j; 
+      shiftOut(srData, srClock, LSBFIRST, data);
+      delay(5);
+    }
+    digitalWrite(srLatch, HIGH);
+    delay(75);
+  }
+
   digitalWrite(srLatch, LOW);
   unsigned int dataRaw = 0 | sliderBits;
   for (int i = 0; i < shiftSegments; i++) {
     byte data = dataRaw >> (8 * i);
-    // PRINTBYTE(data);
     shiftOut(srData, srClock, LSBFIRST, data);
     delay(5);
   }
@@ -93,14 +103,6 @@ void updateButtonValues() {
     buttonPressed = true;
   } else if (digitalRead(buttonIn) == LOW && buttonPressed) {
     // Serial.println("untuuched");
-    digitalWrite(srLatch, LOW);
-    unsigned int dataRaw = (ledOffset) | sliderBits;
-    for (int i = 0; i < shiftSegments; i++) {
-      byte data = dataRaw >> (8 * i);
-      shiftOut(srData, srClock, LSBFIRST, data);
-      delay(5);
-    }
-    digitalWrite(srLatch, HIGH);
     buttonPressed = false;
   }
 }
