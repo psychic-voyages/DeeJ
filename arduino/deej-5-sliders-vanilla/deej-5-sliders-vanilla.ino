@@ -1,6 +1,7 @@
 const int NUM_SLIDERS = 6;
 const unsigned int sliderBits = pow(2.0,NUM_SLIDERS)-1;
 const unsigned int shiftSegments = ceil(((float)NUM_SLIDERS)/4);
+// const int analogInputs[NUM_SLIDERS] = {A0, A1, A2, A3, A4};
 const int analogInputs[NUM_SLIDERS] = {A0, A1, A2, A3, A4, A5};
 const int buttonIn = 7;
 const int srClock = 6;
@@ -23,6 +24,16 @@ void PRINTBYTE (unsigned int input) {
   Serial.println(0B100000000 | input, BIN);
 }
 
+void shiftData (unsigned int dataRaw) {
+  digitalWrite(srLatch, LOW);
+    for (int i = 0; i < shiftSegments; i++) {
+      byte data = dataRaw >> (8 * i);
+      shiftOut(srData, srClock, LSBFIRST, data);
+      // delay(2);
+    }
+    digitalWrite(srLatch, HIGH);
+}
+
 void setup() { 
   Serial.begin(9600);
   for (int i = 0; i < NUM_SLIDERS; i++) {
@@ -36,24 +47,11 @@ void setup() {
   pinMode(srData, OUTPUT);
 
   for (int i = 0; i < NUM_SLIDERS; i++) {
-    digitalWrite(srLatch, LOW);
-    for (int j = 0; j < shiftSegments; j++) {
-      byte data = ((1 << (i+NUM_SLIDERS)) | 0) >> 8 * j; 
-      shiftOut(srData, srClock, LSBFIRST, data);
-      delay(5);
-    }
-    digitalWrite(srLatch, HIGH);
+    shiftData(((1 << (i+NUM_SLIDERS)) | 0));
     delay(75);
   }
 
-  digitalWrite(srLatch, LOW);
-  unsigned int dataRaw = 0 | sliderBits;
-  for (int i = 0; i < shiftSegments; i++) {
-    byte data = dataRaw >> (8 * i);
-    shiftOut(srData, srClock, LSBFIRST, data);
-    delay(5);
-  }
-  digitalWrite(srLatch, HIGH);
+  shiftData(0 | sliderBits);
 }
 
 void loop() {
@@ -62,7 +60,6 @@ void loop() {
 
   sendSliderValues(); // Actually send data (all the time)
   // printSliderValues(); // For debug
-  // myDebug();
   delay(10);
 }
 
@@ -72,14 +69,8 @@ void updateButtonValues() {
   if (digitalRead(buttonIn) == HIGH && !buttonPressed) {
     // Serial.println("tuuched");
     for (int i = 0; i < NUM_SLIDERS; i++) {
-      digitalWrite(srLatch, LOW);
-      unsigned int dataRaw = (ledOffset) | 1 << i;
-      for (int j = 0; j < shiftSegments; j++) {
-        byte data = dataRaw >> (8 * j);
-        shiftOut(srData, srClock, LSBFIRST, data);
-        delay(5);
-      }
-      digitalWrite(srLatch, HIGH);
+      shiftData(ledOffset | (1 << i));
+      
       delay(5);
 
       // Serial.print(i);
@@ -92,21 +83,15 @@ void updateButtonValues() {
       // Serial.println();
     }
     ledOffset = ledOut << NUM_SLIDERS;
-    digitalWrite(srLatch, LOW);
-    unsigned int dataRaw = (ledOffset) | sliderBits;
-    for (int i = 0; i < shiftSegments; i++) {
-      byte data = dataRaw >> (8 * i);
-      shiftOut(srData, srClock, LSBFIRST, data);
-      delay(5);
-    }
-    digitalWrite(srLatch, HIGH);
+
+    shiftData(ledOffset | sliderBits);
+
     buttonPressed = true;
   } else if (digitalRead(buttonIn) == LOW && buttonPressed) {
     // Serial.println("untuuched");
     buttonPressed = false;
   }
 }
-
 
 void updateSliderValues() {
   for (int i = 0; i < NUM_SLIDERS; i++) {
@@ -129,10 +114,6 @@ void sendSliderValues() {
   }
   
   Serial.println(builtString);
-}
-
-void myDebug () {
-  Serial.println(digitalRead(buttonIn));
 }
 
 void printSliderValues() {

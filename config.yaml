@@ -8,16 +8,12 @@
 # important: slider indexes start at 0, regardless of which analog pins you're using!
 slider_mapping:
   0: 
-    - discord.exe
-    - zoom.exe
-    - audacity.exe
-  1: chrome.exe
-  2: spotify.exe
-  3: 
     - MCC-Win64-Shipping.exe
     - hl.exe
-  4: mic
-  5: master
+  1: chrome.exe
+  2: spotify.exe
+  3: mic
+  4: master
 
 # set this to true if you want the controls inverted (i.e. top is 0%, bottom is 100%)
 invert_sliders: false
