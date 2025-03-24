@@ -1,4 +1,4 @@
-const int NUM_SLIDERS = 6;
+const int NUM_SLIDERS = 8;
 const unsigned int sliderBits = pow(2.0,NUM_SLIDERS)-1;
 const unsigned int shiftSegments = ceil(((float)NUM_SLIDERS)/4);
 // const int analogInputs[NUM_SLIDERS] = {A0, A1, A2, A3, A4};
@@ -26,12 +26,12 @@ void PRINTBYTE (unsigned int input) {
 
 void shiftData (unsigned int dataRaw) {
   digitalWrite(srLatch, LOW);
-    for (int i = 0; i < shiftSegments; i++) {
-      byte data = dataRaw >> (8 * i);
-      shiftOut(srData, srClock, LSBFIRST, data);
-      // delay(2);
-    }
-    digitalWrite(srLatch, HIGH);
+  for (int i = 0; i < shiftSegments; i++) {
+    byte data = dataRaw >> (8 * i);
+    shiftOut(srData, srClock, LSBFIRST, data);
+    // delay(2);
+  }
+  digitalWrite(srLatch, HIGH);
 }
 
 void setup() { 
