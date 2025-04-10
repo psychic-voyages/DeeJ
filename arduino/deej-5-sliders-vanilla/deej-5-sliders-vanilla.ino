@@ -1,12 +1,14 @@
-const int NUM_SLIDERS = 8;
+const int NUM_SLIDERS = 6;
 const unsigned int sliderBits = pow(2.0,NUM_SLIDERS)-1;
 const unsigned int shiftSegments = ceil(((float)NUM_SLIDERS)/4);
-// const int analogInputs[NUM_SLIDERS] = {A0, A1, A2, A3, A4};
-const int analogInputs[NUM_SLIDERS] = {A0, A1, A2, A3, A4, A5};
+const int sliderIn = A0;
 const int buttonIn = 7;
 const int srClock = 6;
 const int srLatch = 5;
 const int srData = 4;
+const int mpA = 10;
+const int mpB = 9;
+const int mpC = 8;
 
 int analogSliderValues[NUM_SLIDERS];
 bool sliderMute[NUM_SLIDERS];
@@ -37,14 +39,18 @@ void shiftData (unsigned int dataRaw) {
 void setup() { 
   Serial.begin(9600);
   for (int i = 0; i < NUM_SLIDERS; i++) {
-    pinMode(analogInputs[i], INPUT);
+    // pinMode(analogInputs[i], INPUT);
     sliderMute[i] = false;
   }
 
+  pinMode(sliderIn, INPUT);
   pinMode(buttonIn, INPUT);
   pinMode(srClock, OUTPUT);
   pinMode(srLatch, OUTPUT);
   pinMode(srData, OUTPUT);
+  pinMode(mpA, OUTPUT);
+  pinMode(mpB, OUTPUT);
+  pinMode(mpC, OUTPUT);
 
   for (int i = 0; i < NUM_SLIDERS; i++) {
     shiftData(((1 << (i+NUM_SLIDERS)) | 0));
@@ -95,12 +101,25 @@ void updateButtonValues() {
 
 void updateSliderValues() {
   for (int i = 0; i < NUM_SLIDERS; i++) {
-     analogSliderValues[i] = analogRead(analogInputs[i]);
-     if (sliderMute[i]) {
-      analogSliderValues[i] = 0;
-     }
+    digitalWrite(mpA, i & 1);
+    digitalWrite(mpB, i & 2);
+    digitalWrite(mpC, i & 4);
+    delay(1);
+    analogSliderValues[i] = analogRead(sliderIn);
+    if (sliderMute[i]) {
+     analogSliderValues[i] = 0;
+    }
   }
 }
+
+// void updateSliderValues() {
+//   for (int i = 0; i < NUM_SLIDERS; i++) {
+//      analogSliderValues[i] = analogRead(analogInputs[i]);
+//      if (sliderMute[i]) {
+//       analogSliderValues[i] = 0;
+//      }
+//   }
+// }
 
 void sendSliderValues() {
   String builtString = String("");

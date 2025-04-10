@@ -10,16 +10,20 @@ slider_mapping:
   0: 
     - MCC-Win64-Shipping.exe
     - hl.exe
+    - hl2.exe
   1: chrome.exe
-  2: spotify.exe
-  3: mic
-  4: master
+  2: 
+    - zoom.exe
+    - spotify.exe
+  3: discord.exe
+  4: mic
+  5: master
 
 # set this to true if you want the controls inverted (i.e. top is 0%, bottom is 100%)
 invert_sliders: false
 
 # settings for connecting to the arduino board
-com_port: COM3
+com_port: COM13
 baud_rate: 9600
 
 # adjust the amount of signal noise reduction depending on your hardware quality
